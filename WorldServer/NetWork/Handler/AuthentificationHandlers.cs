@@ -50,7 +50,7 @@ namespace WorldServer
                         Out.WriteUInt32(0);
                         Out.WriteUInt32(Tag);
                         Out.WriteByte(Program.Rm.RealmId);
-                        Out.WriteUInt32(1);
+                        Out.WriteUInt32(0);// was 1// setting this at 0 removes the server population box
                         Out.WritePascalString(Username);
                         Out.WritePascalString(Program.Rm.Name);
                         Out.WriteByte(0);

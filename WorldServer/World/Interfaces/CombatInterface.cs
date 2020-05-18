@@ -691,6 +691,13 @@ namespace WorldServer
         {
             /*if (A.IsCreature() && B.IsCreature())
                 return false;*/
+            ///// GM: MOBS DONT ATTACK GM FIX \\\\\
+            Player Plr = Victim.GetPlayer();
+
+            if (Plr != null && Plr.GmLevel > 0)
+                return false;
+
+            /////////////////////////////////
 
             if (A == null || Victim == null)
                 return false;
