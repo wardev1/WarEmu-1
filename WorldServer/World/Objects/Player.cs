@@ -138,6 +138,9 @@ namespace WorldServer
 
         #endregion
 
+        public Boolean PvpEnabled { get; set; }
+        public Dictionary<int, string> Channels;
+
         public Character _Info;
         public Character_value _Value;
         public GameClient _Client;

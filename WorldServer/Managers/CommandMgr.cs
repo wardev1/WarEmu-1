@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -53,7 +52,7 @@ namespace WorldServer
 
         static public CommandHandler[] Handlers = new CommandHandler[]
         {
-	        new CommandHandler("/afk", null, null ),
+            new CommandHandler("/afk", null, null ),
             new CommandHandler("/alliance", null, AllianceHandler ),
             new CommandHandler("/a", null, null ),
             new CommandHandler("/as", null, null ),
@@ -68,7 +67,7 @@ namespace WorldServer
             new CommandHandler("/aid", null, null ),
             new CommandHandler("/bug", null, null ),
             new CommandHandler("/channel", null, null ),
-            new CommandHandler("/chan", null, null ),
+            new CommandHandler("/chan", PlayerChan, null ),
             new CommandHandler("/2", null, null ),
             new CommandHandler("/3", null, null ),
             new CommandHandler("/4", null, null ),
@@ -174,14 +173,14 @@ namespace WorldServer
             new CommandHandler("/rvr", null, null ),
             new CommandHandler("/pvp", null, null ),
             new CommandHandler("/rvrmap", null, null ),
-	        new CommandHandler("/quit", PlayerQuit, null),
+            new CommandHandler("/quit", PlayerQuit, null),
             new CommandHandler("/exit", PlayerExit, null ),
             new CommandHandler("/q", null, null ),
             new CommandHandler("/say", PlayerSay, null ),
             new CommandHandler("/s", null, null ),
             new CommandHandler("'", null, null ),
             new CommandHandler("/scenariosay", null, null ),
-            new CommandHandler("/sc", null, null ),
+            new CommandHandler("/sc", PlayerScenarioChat, null ),
             new CommandHandler("/scenariotell", null, null ),
             new CommandHandler("/sp", PlayerAd, null ),
             new CommandHandler("/sp1", PlayerAd, null ),
@@ -199,9 +198,9 @@ namespace WorldServer
             new CommandHandler("/social", null, SocialHandler ),
             new CommandHandler("/stuck", PlayerStuck, null ),
             new CommandHandler("/target", null, null ),
-	        new CommandHandler("/tell", PlayerWisp, null),
+            new CommandHandler("/tell", PlayerWisp, null),
             new CommandHandler("/t", null, null ),
-	        new CommandHandler("/whisper", null, null),
+            new CommandHandler("/whisper", null, null),
             new CommandHandler("/w", null, null ),
             new CommandHandler("/msg", null, null ),
             new CommandHandler("/send", null, null ),
@@ -213,7 +212,7 @@ namespace WorldServer
             new CommandHandler("/wbc", null, null ),
             new CommandHandler("/ra", null, null ),
             new CommandHandler("/who", null, null ),
-            new CommandHandler("/advs", PlayerChan, null ),
+            new CommandHandler("/advs", PlayerAd, null ),
             new CommandHandler("/schan", PlayerChan, null ),
             new CommandHandler("/", null, null)
         };
@@ -230,10 +229,10 @@ namespace WorldServer
             if (Text[0] != '&' && Text[0] != '/')
                 return;
 
-            Text = Text.Remove(0,1);
-            Text = Text.Insert(0,"/");
+            Text = Text.Remove(0, 1);
+            Text = Text.Insert(0, "/");
 
-            if(WorldMgr.GeneralScripts.OnPlayerCommand(Plr, Text))
+            if (WorldMgr.GeneralScripts.OnPlayerCommand(Plr, Text))
                 GetCommand(Plr, Text, Handlers);
         }
         static public void GetCommand(Player Plr, string Text, CommandHandler[] Handlers)
@@ -278,7 +277,7 @@ namespace WorldServer
 
         #region Functions
 
-        static public void PlayerQuit(Player Plr,string Text) { if(!Plr.Leaving) Plr.Quit(true); }
+        static public void PlayerQuit(Player Plr, string Text) { if (!Plr.Leaving) Plr.Quit(true); }
         static public void PlayerExit(Player Plr, string Text) { Plr.DisconnectTime = 0; Plr.Quit(); }
         static public void PlayerStuck(Player Plr, string Text)
         {
@@ -295,7 +294,7 @@ namespace WorldServer
         static public void PlayerWisp(Player Plr, string Text)
         {
             int Pos = Text.IndexOf(' ');
-            if(Pos < 0)
+            if (Pos < 0)
                 return;
 
             string ReceiverName = Text.Substring(0, Pos);
@@ -316,19 +315,121 @@ namespace WorldServer
             lock (Player._Players)
             {
                 foreach (Player SubPlr in Player._Players)
-                    if(SubPlr.Realm == Plr.Realm)
+                    if (SubPlr.Realm == Plr.Realm)
                         SubPlr.SendHelpMessage(Plr, Text);
             }
         }
+
+        static public void PlayerScenarioChat(Player Plr, string Text)
+        {
+            lock (Plr.Zone._Players)
+            {
+                // We will need to limit this functions to only work when you are in scenarios.
+                foreach (Player p in Plr.Zone._Players)
+                {
+                    Plr.SendLocalizeString(String.Format("[Scenario][{0}]: {1}", Plr.Name, Text), GameData.Localized_text.CHAT_TAG_DEFAULT);
+                }
+            }
+        }
+
         static public void PlayerChan(Player Plr, string Text)
         {
             int Index = Text.IndexOf(" ");
             if (Index > 0)
             {
-                string ChanName = Text.Substring(0, Index);
+                string Command = Text.Substring(0, Index);
+
                 Text = Text.Remove(0, Index + 1);
 
-                PlayerAd(Plr, Text);
+                if (Command.ToUpper().Equals("JOIN"))
+                {
+                    // Join channel command
+
+                    Managers.ChannelMgr.JoinChannel(Text, Plr);
+
+                }
+                else if (Command.ToUpper().Equals("LEAVE"))
+                {
+                    // Leave channel command
+
+                    Managers.ChannelMgr.LeaveChannel(Text, Plr);
+                }
+                else if (Command.ToUpper().Equals("WHICH"))
+                {
+                    Plr.SendLocalizeString("Channels", GameData.Localized_text.CHAT_TAG_DEFAULT);
+                    Plr.SendLocalizeString("---------------", GameData.Localized_text.CHAT_TAG_DEFAULT);
+                    foreach (var pair in Plr.Channels)
+                    {
+                        Plr.SendLocalizeString(" #" + pair.Key + " -> " + pair.Value, GameData.Localized_text.CHAT_TAG_DEFAULT);
+                    }
+                }
+                else if (Command.ToUpper().Equals("WHO"))
+                {
+                    // Check if player is in channel. If not then reject request.
+                    if (Managers.ChannelMgr.IsPlayerInChannel(Text, Plr))
+                    {
+                        Plr.SendLocalizeString("'" + Text + "' Channel Members", GameData.Localized_text.CHAT_TAG_DEFAULT);
+                        foreach (var player in Managers.ChannelMgr.Channels[Text].Members)
+                        {
+                            Plr.SendLocalizeString(" -> " + player.Name, GameData.Localized_text.CHAT_TAG_DEFAULT);
+                        }
+                    }
+                    else
+                    {
+                        Plr.SendLocalizeString("You are not a member of " + Text + ".", GameData.Localized_text.CHAT_TAG_DEFAULT);
+                    }
+                }
+                else if (Command.ToUpper().Equals("SAY"))
+                {
+                    string channel = Text.Substring(0, Text.IndexOf(" "));
+                    Text = Text.Substring(Text.IndexOf(" ")).Trim();
+                    // Zone Chat
+                    if (channel == "1")
+                    {
+                        lock (Plr.Zone._Players)
+                        {
+                            foreach (Player p in Plr.Zone._Players)
+                            {
+                                if (p.FactionId.Equals(Plr.FactionId)) // Same faction only
+                                    Plr.SendLocalizeString(String.Format("[{0}][{1}]: {2}", Plr.Zone.Info.Name, Plr.Name, Text), GameData.Localized_text.CHAT_TAG_DEFAULT);
+                            }
+                        }
+                    }
+                    // RvR Chat
+                    else if (channel == "2")
+                    {
+                        foreach (ZoneMgr zone in Plr.Region.ZonesMgr)
+                        {
+                            foreach (Player p in zone._Players)
+                            {
+                                if (p.FactionId.Equals(Plr.FactionId)) // Same faction only
+                                    Plr.SendLocalizeString(String.Format("[{0}][{1}]: {2}", "RvR", Plr.Name, Text), GameData.Localized_text.CHAT_TAG_DEFAULT);
+                            }
+                        }
+                    }
+                    else if (System.Text.RegularExpressions.Regex.IsMatch(channel, @"^\d+$"))
+                    {
+                        if (Plr.Channels.ContainsKey(Convert.ToInt32(channel)))
+                        {
+                            Plr.SendLocalizeString(String.Format("[{0}][{1}]: {2}", Plr.Channels[Convert.ToInt32(channel)], Plr.Name, Text), GameData.Localized_text.CHAT_TAG_DEFAULT);
+                        }
+                        else
+                        {
+                            Plr.SendLocalizeString("", GameData.Localized_text.TEXT_CHATCHANNEL_NOT_IN_CHANNEL);
+                        }
+                    }
+                    else
+                    {
+
+                        Plr.SendLocalizeString("", GameData.Localized_text.TEXT_CHATCHANNEL_NOT_IN_CHANNEL);
+                    }
+                }
+                else
+                {
+                    Plr.SendLocalizeString("", GameData.Localized_text.TEXT_CHATCHANNEL_NOT_IN_CHANNEL);
+                    return;
+                }
+
 
             }
         }

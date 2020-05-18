@@ -126,6 +126,7 @@
     <Compile Include="Configs\WorldConfigs.cs" />
     <Compile Include="Console\ReloadScriptsCommand.cs" />
     <Compile Include="Managers\AreaMapMgr.cs" />
+    <Compile Include="Managers\ChannelMgr.cs" />
     <Compile Include="Managers\CharMgr.cs" />
     <Compile Include="Managers\ClientFileMgr.cs" />
     <Compile Include="Managers\CommandMgr.cs" />
@@ -176,6 +177,7 @@
     <Compile Include="World\Interfaces\MailInterface.cs" />
     <Compile Include="World\Interfaces\ScriptsInterface.cs" />
     <Compile Include="World\Mounts\Mount.cs" />
+    <Compile Include="World\Objects\Channel.cs" />
     <Compile Include="World\Objects\Group.cs" />
     <Compile Include="World\Objects\Item.cs" />
     <Compile Include="World\Interfaces\ItemsInterface.cs" />
